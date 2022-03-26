@@ -1,4 +1,5 @@
 use std::io::{Read, Seek};
+use std::convert::TryInto;
 
 use crate::Error;
 use crate::common::*;
@@ -120,7 +121,7 @@ pub fn decode<T: Read + Seek, const TARGET_SPS: u32>(data: T) -> Result<(Vec<i16
     let mut dec_absgsp = 0;
     while let Some(packet) = reader.read_packet()? {
         let mut temp_buffer = [0i16; MAX_FRAME_SIZE];
-        let out_size = decoder.decode(Some(&packet.data), &mut temp_buffer[..], false)?;
+        let out_size = decoder.decode(Some(packet.data[..].try_into()?), (&mut temp_buffer[..]).try_into()?, false)?;
         let absgsp = calc_sr_u64(packet.absgp_page(),OGG_OPUS_SPS, TARGET_SPS) as usize;
         dec_absgsp += out_size;
         let trimmed_end = if packet.last_in_stream() && dec_absgsp > absgsp {
